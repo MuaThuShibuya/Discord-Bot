@@ -1,0 +1,19 @@
+# render.yaml
+# Cấu hình triển khai tự động trên Render.com.
+# File này giúp Render nhận diện đây là Web Service (có HTTP) — không bị sleep như Background Worker.
+
+services:
+  - type: web               # PHẢI là "web" để có URL công khai, bot mới không bị ngủ
+    name: casinopro-bot
+    env: node
+    region: singapore       # Chọn server gần VN nhất để giảm latency
+    plan: free
+    buildCommand: npm install
+    startCommand: node index.js
+    healthCheckPath: /health  # Render tự ping endpoint này để kiểm tra service còn sống
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # TOKEN, MONGO_URI, PREFIX phải nhập thủ công trong Render Dashboard → Environment
+      # KHÔNG đặt secret ở đây vì file này sẽ lên GitHub
