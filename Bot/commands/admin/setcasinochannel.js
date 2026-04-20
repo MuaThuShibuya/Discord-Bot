@@ -18,11 +18,11 @@ module.exports = {
         const guildData = await Guild.findOneAndUpdate(
             { guildId },
             { $setOnInsert: { guildId } },
-            { upsert: true, new: true }
+            { upsert: true, returnDocument: 'after' }
         );
 
         if (action === 'list') {
-            const list = guildData.casinoChannels;
+            const list = guildData.casinoChannels || [];
             return message.reply({
                 embeds: [
                     Embed.admin('Kênh Casino Hiện Tại')
@@ -56,7 +56,8 @@ module.exports = {
             });
 
         if (action === 'add') {
-            if (guildData.casinoChannels.includes(channel.id))
+            const list = guildData.casinoChannels || [];
+            if (list.includes(channel.id))
                 return message.reply({ embeds: [Embed.warning('Đã Tồn Tại', `<#${channel.id}> đã có trong danh sách.`)] });
             await Guild.updateOne({ guildId }, { $addToSet: { casinoChannels: channel.id } });
             return message.reply({

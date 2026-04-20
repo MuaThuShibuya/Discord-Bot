@@ -29,7 +29,7 @@ async function processTransaction(userId, amount, type, reason = '', opts = {}) 
         { userId },
         { $inc: { balance: amount } },
         {
-            new:     true,    // Trả về document sau khi update (để lấy balanceAfter)
+            returnDocument: 'after', // Trả về document sau khi update (để lấy balanceAfter)
             upsert:  true,    // Tự tạo user nếu chưa tồn tại (first-time player)
             session,          // Truyền session vào để tham gia transaction ACID nếu có
             runValidators: true, // Chạy validator Schema (chống balance < 0)

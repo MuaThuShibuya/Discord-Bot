@@ -3,7 +3,7 @@
 // Dùng để log thông tin khởi động và có thể set Activity/Status cho bot.
 
 module.exports = {
-    name: 'clientReady', // discord.js v14+: đổi từ 'ready' sang 'clientReady'
+    name: 'ready',
     once: true,
     execute(client) {
         console.log('─'.repeat(40));

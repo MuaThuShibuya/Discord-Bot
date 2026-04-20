@@ -80,3 +80,11 @@ if (fs.existsSync(commandsPath)) {
 
 // --- Bước 4: Đăng nhập ---
 client.login(process.env.TOKEN);
+
+// --- Bảo vệ process khỏi crash do unhandled rejection / uncaught exception ---
+process.on('unhandledRejection', (reason) => {
+    console.error('[Process] Unhandled Rejection:', reason);
+});
+process.on('uncaughtException', (err) => {
+    console.error('[Process] Uncaught Exception:', err);
+});

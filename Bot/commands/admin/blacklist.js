@@ -19,7 +19,7 @@ module.exports = {
         const updated = await User.findOneAndUpdate(
             { userId: target.id },
             [{ $set: { isBlacklisted: { $not: '$isBlacklisted' } } }],
-            { new: true, upsert: true }
+            { returnDocument: 'after', upsert: true }
         );
 
         const banned = updated.isBlacklisted;

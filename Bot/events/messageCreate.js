@@ -43,7 +43,7 @@ module.exports = {
                             const userData = await User.findOneAndUpdate(
                                 { userId: mentionedUser.id },
                                 { $setOnInsert: { userId: mentionedUser.id } },
-                                { upsert: true, new: true }
+                                { upsert: true, returnDocument: 'after' }
                             );
 
                             // Reset bộ đếm nếu đã sang ngày mới
@@ -91,17 +91,25 @@ module.exports = {
         // ══════════════════════════════════════════
 
         // Load cấu hình guild (prefix + channel restrictions) — cache có thể thêm sau nếu cần scale
-        const guildConfig = await Guild.findOne({ guildId: message.guild?.id });
+        let guildConfig = null;
+        try {
+            guildConfig = await Guild.findOne({ guildId: message.guild?.id });
+        } catch (err) {
+            console.error('[MessageCreate] Lỗi khi load guild config:', err);
+        }
         const prefix = guildConfig?.prefix || process.env.PREFIX || '!';
 
         if (!message.content.startsWith(prefix)) return;
 
-        // Channel Guard: từ chối lệnh nếu admin đã giới hạn kênh
+        // Channel Guard: từ chối lệnh nếu admin đã giới hạn kênh.
+        // Admin (có quyền Administrator) luôn được phép dùng lệnh ở bất kỳ kênh nào.
         const allowedChannels = guildConfig?.casinoChannels ?? [];
-        if (allowedChannels.length > 0 && !allowedChannels.includes(message.channel.id)) {
-            return message.reply(
-                `❌ Lệnh casino chỉ hoạt động trong các kênh được chỉ định. Hãy dùng đúng kênh!`
-            ).then(msg => setTimeout(() => msg.delete().catch(() => {}), 5000)); // Tự xóa sau 5s
+        const isAdmin = message.member?.permissions.has('Administrator');
+        if (allowedChannels.length > 0 && !allowedChannels.includes(message.channel.id) && !isAdmin) {
+            message.reply(
+                '❌ Lệnh casino chỉ hoạt động trong các kênh được chỉ định. Hãy dùng đúng kênh!'
+            ).then(msg => setTimeout(() => msg.delete().catch(() => {}), 5000)).catch(() => {});
+            return;
         }
 
         // Parse command
@@ -115,7 +123,7 @@ module.exports = {
             let userData = await User.findOneAndUpdate(
                 { userId: message.author.id },
                 { $setOnInsert: { userId: message.author.id } },
-                { upsert: true, new: true }
+                { upsert: true, returnDocument: 'after' }
             );
 
             // Security: chặn user bị ban
@@ -131,7 +139,7 @@ module.exports = {
                     userData = await User.findOneAndUpdate(
                         { userId: userData.userId },
                         { $set: { isLocked: false, lockedAt: null } },
-                        { new: true }
+                        { returnDocument: 'after' }
                     );
                     console.warn(`[Mutex] Đã tự mở stale lock cho user ${userData.userId}`);
                 } else {

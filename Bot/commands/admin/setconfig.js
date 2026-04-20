@@ -21,7 +21,7 @@ module.exports = {
             await Guild.findOneAndUpdate(
                 { guildId: message.guild.id },
                 { $set: { prefix: value } },
-                { upsert: true }
+                { upsert: true, returnDocument: 'after' }
             );
             return message.reply({
                 embeds: [
