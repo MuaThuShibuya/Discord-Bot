@@ -5,6 +5,7 @@ const User = require('../../database/models/User');
 const { processTransaction } = require('../../utils/transaction');
 const { secureRandom } = require('../../utils/rng');
 const { Embed, fmt, balanceChange } = require('../../utils/embed');
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 
 const SYMBOLS = [
     { icon: '🍎', weight: 30 },
@@ -37,61 +38,124 @@ module.exports = {
 
         if (isNaN(betAmount) || betAmount <= 0)
             return message.reply({ embeds: [Embed.error('Cú Pháp Sai', '`!slots <số_tiền>`')] });
-        if (userData.balance < betAmount)
-            return message.reply({ embeds: [Embed.error('Không Đủ Tiền', `Số dư: **${fmt(userData.balance)} xu**`)] });
+        let currentBalance = userData.balance;
+        if (currentBalance < betAmount)
+            return message.reply({ embeds: [Embed.error('Không Đủ Tiền', `Số dư: **${fmt(currentBalance)} xu**`)] });
 
-        await User.updateOne({ userId: userData.userId }, { $set: { isLocked: true, lockedAt: new Date() } });
+        let isPlaying = true;
+        let currentMessage = null;
+        let skipPrompt = false;
 
-        // Hiệu ứng đang quay — gửi trước, edit sau
-        const spinning = await message.reply({
-            embeds: [
-                Embed.casino('SLOTS MACHINE', null, betAmount)
-                    .setDescription('┃ 🔄 ┃ 🔄 ┃ 🔄 ┃\n\n_Đang quay..._'),
-            ],
-        });
-
-        try {
-            const result = [weightedPick(), weightedPick(), weightedPick()];
-            const [a, b, c] = result;
-
-            let multiplier = 0;
-            if (a === b && b === c)      multiplier = 5;
-            else if (a === b || b === c || a === c) multiplier = 1.5;
-
-            const slotDisplay = `┃ ${a} ┃ ${b} ┃ ${c} ┃`;
-            const guildId = message.guild?.id;
-
-            if (multiplier > 0) {
-                const winAmount = Math.floor(betAmount * multiplier);
-                const updated   = await processTransaction(
-                    userData.userId, winAmount - betAmount, 'BET_WIN',
-                    `Thắng Slots ${MULTIPLIERS[multiplier]}`, { guildId }
-                );
-                await spinning.edit({
-                    embeds: [
-                        Embed.win(`SLOTS — ${MULTIPLIERS[multiplier]}`, null, betAmount)
-                            .setDescription(
-                                `${slotDisplay}\n\n` +
-                                `🎉 **+${fmt(winAmount)} xu**\n` +
-                                balanceChange(userData.balance, updated.balance)
-                            ),
-                    ],
-                });
-            } else {
-                const updated = await processTransaction(userData.userId, -betAmount, 'BET_LOSS', 'Thua Slots', { guildId });
-                await spinning.edit({
-                    embeds: [
-                        Embed.lose('SLOTS — Không Trùng', null, betAmount)
-                            .setDescription(
-                                `${slotDisplay}\n\n` +
-                                `💀 **-${fmt(betAmount)} xu**\n` +
-                                balanceChange(userData.balance, updated.balance)
-                            ),
-                    ],
-                });
+        while (isPlaying) {
+            // Kiểm tra số dư người dùng trước mỗi lần quay kế tiếp
+            if (currentMessage && currentBalance < betAmount) {
+                const noMoneyEmbed = Embed.error('Không Đủ Tiền', `Bạn không còn đủ **${fmt(betAmount)} xu** để quay tiếp!\nSố dư hiện tại: **${fmt(currentBalance)} xu**`);
+                await currentMessage.edit({ embeds: [noMoneyEmbed], components: [] });
+                break;
             }
-        } finally {
-            await User.updateOne({ userId: userData.userId }, { $set: { isLocked: false, lockedAt: null } });
+
+            // Khóa tài khoản cho lượt chơi này
+            await User.updateOne({ userId: userData.userId }, { $set: { isLocked: true, lockedAt: new Date() } });
+
+            try {
+                let interaction;
+
+                // 1. Chỉ hỏi xác nhận nếu là lần đầu hoặc họ bị mất tương tác
+                if (!skipPrompt) {
+                    const row = new ActionRowBuilder().addComponents(
+                        new ButtonBuilder().setCustomId('slots_pull').setLabel('Quay Ngay').setEmoji('🎰').setStyle(ButtonStyle.Success)
+                    );
+                    const promptEmbed = Embed.playing('SLOTS MACHINE 🎰', `Bạn đang cược **${fmt(betAmount)} xu**.\nNhấn nút bên dưới để quay!`, betAmount);
+                    
+                    if (!currentMessage) currentMessage = await message.reply({ embeds: [promptEmbed], components: [row] });
+                    else await currentMessage.edit({ embeds: [promptEmbed], components: [row] });
+
+                    try {
+                        interaction = await currentMessage.awaitMessageComponent({
+                            filter: i => i.user.id === message.author.id, time: 30_000
+                        });
+                        await interaction.deferUpdate();
+                    } catch (err) {
+                        await currentMessage.edit({ content: '⏳ Hết thời gian chờ, giao dịch bị huỷ.', components: [] }).catch(() => {});
+                        isPlaying = false;
+                        break;
+                    }
+                }
+
+                // 2. Hiệu ứng máy quay
+                const suspenseEmbed = Embed.playing('SLOTS MACHINE 🎰', '┃ 🔄 ┃ 🔄 ┃ 🔄 ┃\n\n⏳ *Máy đang quay lạch cạch...*', betAmount);
+                
+                await currentMessage.edit({ embeds: [suspenseEmbed], components: [] });
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+                // 3. Tính toán kết quả
+                const result = [weightedPick(), weightedPick(), weightedPick()];
+                const [a, b, c] = result;
+
+                let multiplier = 0;
+                if (a === b && b === c)     multiplier = 5;
+                else if (a === b || b === c || a === c) multiplier = 1.5;
+
+                const slotDisplay = `┃ ${a} ┃ ${b} ┃ ${c} ┃`;
+                const guildId = message.guild?.id;
+
+                let finalEmbed;
+                if (multiplier > 0) {
+                    const winAmount = Math.floor(betAmount * multiplier);
+                    const netWin = winAmount - betAmount;
+                    const updated = await processTransaction(
+                        userData.userId, netWin, 'BET_WIN',
+                        `Thắng Slots ${MULTIPLIERS[multiplier]}`, { guildId }
+                    );
+                    finalEmbed = Embed.win(`SLOTS — ${MULTIPLIERS[multiplier]}`, null, betAmount)
+                        .setDescription(
+                            `${slotDisplay}\n\n` +
+                            `🎉 **+${fmt(winAmount)} xu**\n` +
+                            balanceChange(currentBalance, updated.balance)
+                        );
+                    currentBalance = updated.balance; // Đồng bộ biến nội bộ
+                } else {
+                    const updated = await processTransaction(userData.userId, -betAmount, 'BET_LOSS', 'Thua Slots', { guildId });
+                    finalEmbed = Embed.lose('SLOTS — Không Trùng', null, betAmount)
+                        .setDescription(
+                            `${slotDisplay}\n\n` +
+                            `💀 **-${fmt(betAmount)} xu**\n` +
+                            balanceChange(currentBalance, updated.balance)
+                        );
+                    currentBalance = updated.balance; // Đồng bộ biến nội bộ
+                }
+
+                // 4. In ra kết quả và móc vào nút QUAY TIẾP
+                const replayRow = new ActionRowBuilder().addComponents(
+                    new ButtonBuilder().setCustomId('slots_replay').setLabel('Quay Tiếp').setEmoji('🎰').setStyle(ButtonStyle.Success),
+                    new ButtonBuilder().setCustomId('slots_stop').setLabel('Dừng Lại').setStyle(ButtonStyle.Secondary)
+                );
+
+                await currentMessage.edit({ embeds: [finalEmbed], components: [replayRow] });
+
+                // 5. Đợi xem người chơi muốn đánh tiếp vòng mới không
+                try {
+                    const replayInteraction = await currentMessage.awaitMessageComponent({
+                        filter: i => i.user.id === message.author.id, time: 30_000
+                    });
+                    
+                    await replayInteraction.deferUpdate();
+
+                    if (replayInteraction.customId === 'slots_stop') {
+                        await currentMessage.edit({ components: [] });
+                        isPlaying = false; // Kết thúc vòng lặp
+                    } else {
+                        skipPrompt = true; // Nhảy thẳng vào vòng lặp spin tiếp theo
+                    }
+                } catch (err) {
+                    await currentMessage.edit({ components: [] }).catch(() => {});
+                    isPlaying = false;
+                }
+
+            } finally {
+                // Giải phóng khóa bảo vệ tạm thời giữa các luồng
+                await User.updateOne({ userId: userData.userId }, { $set: { isLocked: false, lockedAt: null } });
+            }
         }
     },
 };

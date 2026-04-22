@@ -164,7 +164,7 @@ module.exports = {
             // ──────────────────────────────────────────────────────────────────────
 
             // Security: chặn user đang trong ván bài — tuy nhiên tự động mở khóa nếu stale
-            if (userData.isLocked) {
+            if (userData.isLocked && !userData.ignoreLock) {
                 const staleLock = userData.lockedAt && (Date.now() - userData.lockedAt.getTime()) > LOCK_TIMEOUT_MS;
                 if (staleLock) {
                     // Stale lock recovery: bot crash trước đó, giải phóng khóa

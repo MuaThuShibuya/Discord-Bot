@@ -33,6 +33,7 @@ const userSchema = new mongoose.Schema(
         // lockedAt: timestamp để tự động mở khóa nếu bot crash giữa chừng (stale lock recovery)
         isLocked:  { type: Boolean, default: false },
         lockedAt:  { type: Date,    default: null  },
+        ignoreLock: { type: Boolean, default: false }, // Cho phép Admin bypass kiểm tra trùng game để test
 
         // --- Chống lạm dụng OwO Integration (Anti-Farm) ---
         owoDailyCount: { type: Number, default: 0  }, // Số lần nhận thưởng OwO trong ngày
