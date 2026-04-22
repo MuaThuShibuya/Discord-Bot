@@ -131,6 +131,38 @@ module.exports = {
                 return message.reply('⛔ Tài khoản của bạn đã bị cấm sử dụng hệ thống.');
             }
 
+            // ─── TÍNH NĂNG LOAN: TỰ ĐỘNG THU NỢ VÀ GIỚI HẠN CASINO NHẸ NHÀNG ────────
+            if (userData.loanAmountDue > 0) {
+                const isOverdue = userData.loanDueDate && Date.now() > userData.loanDueDate.getTime();
+                
+                if (isOverdue) {
+                    // Thử tự động thu nợ nếu người chơi có xu trong ví
+                    if (userData.balance > 0) {
+                        const amountToTake = Math.min(userData.balance, userData.loanAmountDue);
+                        await processTransaction(userData.userId, -amountToTake, 'LOAN_REPAY_AUTO', 'Tự động thu hồi nợ quá hạn', { guildId: message.guild?.id });
+                        
+                        const remainingDebt = userData.loanAmountDue - amountToTake;
+                        userData = await User.findOneAndUpdate(
+                            { userId: userData.userId },
+                            { 
+                                $set: { loanAmountDue: remainingDebt, ...(remainingDebt === 0 ? { loanDueDate: null } : {}) }
+                            },
+                            { returnDocument: 'after' }
+                        );
+                        message.channel.send(`🕴️ **SIẾT NỢ!** <@${userData.userId}> Đã quá thời hạn 1 tiếng trả nợ. Trùm Casino vừa phái đàn em tới lột sạch **${amountToTake.toLocaleString('en-US')} xu** từ túi của bạn!`);
+                    }
+
+                    // Nếu vẫn còn nợ sau khi thu -> Cấm chơi Casino nhưng cho phép dùng lệnh Kinh tế
+                    if (userData.loanAmountDue > 0) {
+                        const economyCmds = ['bal', 'balance', 'work', 'daily', 'claim', 'pay', 'lb', 'leaderboard', 'repay', 'help'];
+                        if (!economyCmds.includes(commandName) && !isAdmin) {
+                            return message.reply(`🛑 **BẠN ĐANG BỊ CẤM CỬA CASINO!**\nKhoản nợ của bạn đã quá thời hạn 1 tiếng và hiện vẫn còn thiếu **${userData.loanAmountDue.toLocaleString('en-US')} xu**.\nBảo vệ không cho phép bạn vào bàn chơi. Hãy ra ngoài gõ \`!work\` làm thuê rửa bát kiếm tiền và \`!repay\` trả nợ đi nhé! 🧹🍽️`);
+                        }
+                    }
+                }
+            }
+            // ──────────────────────────────────────────────────────────────────────
+
             // Security: chặn user đang trong ván bài — tuy nhiên tự động mở khóa nếu stale
             if (userData.isLocked) {
                 const staleLock = userData.lockedAt && (Date.now() - userData.lockedAt.getTime()) > LOCK_TIMEOUT_MS;

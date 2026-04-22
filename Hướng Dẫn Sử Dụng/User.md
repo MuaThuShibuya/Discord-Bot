@@ -6,12 +6,15 @@ Lệnh	                    Chức năng	                    Cooldown
 !claim	                    Thu nhập thụ động 10 xu/giờ, tối đa 240 xu
 !pay @user <số>	            Chuyển tiền an toàn (ACID)	    Không
 !lb hoặc !leaderboard	    Bảng xếp hạng Top 10 đại gia	Không
+!repay                      Trả nợ khoản vay hiện tại       Không
 
 🎰 Casino
 Lệnh	                    Cách chơi	                    Tỷ lệ thắng
 !cf <số>	                Đoán mặt đồng xu	            50/% — thắng ×2
 !slots <số>	                Quay 3 ô biểu tượng	    2 trùng ×1.5 | 3 trùng ×5
 !bj <số>	                Xì dách vs Dealer, nhấn nút Hit/Stand/Double
+!tx <số>                    Cược tổng 3 xúc xắc là Tài (11-17) hay Xỉu (4-10). Thắng x2.
+!db <số>                    Đoán bài 4 chặng. Có thể chốt lời an toàn (x2, x4, x8) hoặc vượt 4 chặng để x20 tiền cược.
 !roulette <số> red	        Đặt màu Đỏ	                    48.6% — thắng ×2
 !roulette <số> black	    Đặt màu Đen	                    48.6% — thắng ×2
 !roulette <số> green	    Đặt số 0	                    2.7% — thắng ×14

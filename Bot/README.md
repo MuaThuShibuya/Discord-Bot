@@ -13,12 +13,16 @@ Hệ thống kinh tế cơ bản:
 - [ ] `!daily` - Nhận phần thưởng mỗi 24h.
 - [ ] `!pay @user <amount>` - Chuyển tiền cho người chơi khác.
 - [ ] `!leaderboard / !lb` - Bảng xếp hạng đại gia trong server/toàn cầu.
+- [ ] `!loan <amount>` - Vay nợ có tính lãi suất theo %.
+- [ ] `!repay` - Trả khoản nợ đang vay.
 
 Hệ thống Casino (Core):
 - [ ] `!coinflip / !cf <bet_amount>` - Lật đồng xu (Tỷ lệ 50/50).
 - [ ] `!slots <bet_amount>` - Quay hũ xèng.
 - [ ] `!blackjack / !bj <bet_amount>` - Chơi xì dách với Dealer (Bot) (Logic bốc bài, dừng, nhân đôi).
 - [ ] `!roulette <bet_amount> <color/number>` - Chơi cò quay Nga (Red/Black/Green).
+- [ ] `!taixiu / !tx <bet_amount>` - Chơi Tài Xỉu (Sic Bo) với 3 xúc xắc.
+- [ ] `!highlow / !hl <bet_amount>` - Chơi Cao-Thấp (High-Low) với bài.
 
 Chức năng Tích hợp (Integration/Tasks):
 - [ ] Nhận diện tự động: Người dùng tương tác với Bot OwO (ví dụ làm lệnh `owo hunt`) sẽ nhận được thêm % tiền thưởng bên CasinoPro.
@@ -29,6 +33,7 @@ Chức năng Tích hợp (Integration/Tasks):
 - [ ] `!removemoney @user <amount>` - Trừ tiền người dùng vi phạm.
 - [ ] `!reset @user` - Xóa trắng tài khoản người chơi.
 - [ ] `!blacklist @user` - Cấm người dùng sử dụng bot (Ngăn chặn spam/hack).
+- [ ] `!cleardebt @user` - Xóa nợ và gỡ lệnh siết nợ (unban).
 - [ ] `!setcasinochannel #channel` - Giới hạn bot chỉ hoạt động trong một số kênh nhất định.
 - [ ] `!stats` - Thống kê tổng số tiền đang lưu thông, tổng số người chơi.
 

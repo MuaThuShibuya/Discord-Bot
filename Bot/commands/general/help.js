@@ -25,6 +25,7 @@ const CATEGORIES = {
             { usage: '!claim',                   desc: 'Thu nhập thụ động **10 xu/giờ**, tối đa 240 xu sau 24h' },
             { usage: '!pay @user <số_tiền>',     desc: 'Chuyển tiền cho người chơi khác (ACID transaction)' },
             { usage: '!lb / !leaderboard',       desc: 'Bảng xếp hạng **Top 10** đại gia server' },
+            { usage: '!repay',                   desc: 'Trả nợ Casino để không bị siết nợ' },
         ],
     },
     casino: {
@@ -34,9 +35,11 @@ const CATEGORIES = {
         color:       COLORS.CASINO,
         commands: [
             { usage: '!cf / !coinflip <số>',                desc: 'Lật đồng xu — Tỷ lệ **50/50**, thắng **x2**' },
-            { usage: '!slots <số>',                          desc: 'Quay hũ — 2 trùng **x1.5**, 3 trùng **x5** 🎯' },
+            { usage: '!slots <số>',                         desc: 'Quay hũ — 2 trùng **x1.5**, 3 trùng **x5** 🎯' },
             { usage: '!bj / !blackjack <số>',               desc: 'Xì Dách — Natural BJ thắng **x1.5**, có nút **Hit/Stand/Double**' },
             { usage: '!roulette <số> red/black/green/0–36', desc: 'Cò quay — Màu **x2**, Xanh **x14**, Số **x36**' },
+            { usage: '!tx / !taixiu <số>',                  desc: 'Cược Tài (11-17) / Xỉu (4-10) — Thắng **x2**, bộ ba đồng nhất thua' },
+            { usage: '!db / !doanbai <số>',                 desc: 'Đoán bài 4 chặng — **Chốt lời x2, x4, x8** hoặc đi hết **x20**' },
         ],
         note: '> ⚠️ **Lưu ý:** Tài khoản bị khóa trong ván bài — không thể mở nhiều game cùng lúc.',
     },
@@ -49,10 +52,12 @@ const CATEGORIES = {
             { usage: '!addmoney @user <số>',              desc: 'Bơm tiền vào tài khoản người chơi' },
             { usage: '!removemoney @user <số>',           desc: 'Trừ tiền người chơi vi phạm' },
             { usage: '!reset @user --confirm',            desc: 'Xóa trắng tài khoản (cần flag xác nhận)' },
+            { usage: '!loan @user <số> [lãi]',            desc: 'Cho người chơi vay tiền Casino' },
             { usage: '!blacklist @user',                  desc: 'Toggle cấm/mở cấm người chơi' },
             { usage: '!setconfig prefix <prefix>',        desc: 'Đổi prefix lệnh của bot trên server này' },
             { usage: '!setcasinochannel add/remove/list/clear [#kênh]', desc: 'Giới hạn kênh được dùng lệnh casino' },
             { usage: '!stats',                            desc: 'Thống kê tổng quan hệ thống (aggregation)' },
+            { usage: '!cleardebt @user',                  desc: 'Gỡ cấm siết nợ và xóa nợ cho người chơi' },
         ],
         note: '> 🔒 Tất cả lệnh admin yêu cầu quyền **Administrator** trên Discord server.',
     },
@@ -73,17 +78,17 @@ function buildOverviewEmbed(user, prefix) {
         .addFields(
             {
                 name: '💰 Kinh Tế',
-                value: '`!bal` `!work` `!daily` `!claim` `!pay` `!lb`',
+                value: '`!bal` `!work` `!daily` `!claim` `!pay` `!lb` `!repay`',
                 inline: true,
             },
             {
                 name: '🎰 Casino',
-                value: '`!cf` `!slots` `!bj` `!roulette`',
+                value: '`!cf` `!slots` `!bj` `!roulette` `!tx` `!db`',
                 inline: true,
             },
             {
                 name: '🛡️ Quản Trị',
-                value: '`!addmoney` `!removemoney` `!reset` `!blacklist` `!stats` ...',
+                value: '`!addmoney` `!removemoney` `!loan` `!blacklist` `!stats` ...',
                 inline: true,
             },
             {

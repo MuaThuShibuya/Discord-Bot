@@ -18,6 +18,9 @@ const TRANSACTION_TYPES = Object.freeze([
     'ADMIN_RESET',   // Admin xóa trắng tài khoản
     'TRANSFER_OUT',  // Chuyển tiền đi (người gửi)
     'TRANSFER_IN',   // Nhận tiền (người nhận)
+    'LOAN_BORROW',   // Vay tiền từ Casino
+    'LOAN_REPAY',    // Người chơi chủ động trả nợ
+    'LOAN_REPAY_AUTO',// Hệ thống tự động siết nợ
 ]);
 
 const transactionSchema = new mongoose.Schema({

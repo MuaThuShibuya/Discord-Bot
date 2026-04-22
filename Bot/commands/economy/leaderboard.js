@@ -29,12 +29,25 @@ module.exports = {
             balance: { $gt: userData.balance },
         }) + 1;
 
-        const rows = topUsers.map((u, i) => {
-            const icon    = MEDALS[i] ?? NUMBERS[i - 3];
-            const isSelf  = u.userId === message.author.id;
-            const name    = isSelf ? `**${message.author.username} ← Bạn**` : `<@${u.userId}>`;
+        // Chủ động fetch thông tin User từ Discord để đảm bảo luôn lấy được Username
+        const rows = await Promise.all(topUsers.map(async (u, i) => {
+            const icon   = MEDALS[i] ?? NUMBERS[i - 3];
+            const isSelf = u.userId === message.author.id;
+            let name     = '';
+            
+            if (isSelf) {
+                name = `**${message.author.username} ← Bạn**`;
+            } else {
+                try {
+                    const fetchedUser = client.users.cache.get(u.userId) || await client.users.fetch(u.userId);
+                    name = `**${fetchedUser.displayName || fetchedUser.username}**`;
+                } catch (error) {
+                    name = `**Người chơi ẩn** \`(${u.userId})\``;
+                }
+            }
+
             return `${icon} ${name}\n┗ 💰 **${fmt(u.balance)} xu**`;
-        });
+        }));
 
         const embed = new EmbedBuilder()
             .setColor(COLORS.CASINO)

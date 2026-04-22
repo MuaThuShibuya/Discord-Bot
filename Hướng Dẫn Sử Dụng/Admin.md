@@ -8,7 +8,10 @@ Lệnh	                            Chức năng
 !removemoney @user <số>	        | Trừ tiền người vi phạm
 !removemoney @Nam 1000
 
-!reset @user --confirm	        | Xóa trắng tài khoản (cần --confirm)!reset @Nam --confirm
+!reset @user --confirm	        | Xóa trắng tài khoản (cần --confirm)
+
+!loan @user <số> [lãi]          | Cho người chơi vay tiền Casino (lãi 10%, thu nợ sau 1 tiếng)
+!loan @Nam 50000 5
 
 !blacklist @user	            | Toggle cấm/mở cấm dùng bot
 !blacklist @Nam
@@ -23,9 +26,10 @@ Lệnh	                            Chức năng
 !setcasinochannel remove #casino
 
 !setcasinochannel list	        | Xem danh sách kênh đang giới hạn
-!setcasinochannel list
 
 !setcasinochannel clear	        | Bỏ giới hạn, bot hoạt động mọi kênh
 !setcasinochannel clear
 
 !stats                          | Thống kê tổng quan hệ thống
+
+!cleardebt @user                | Xóa nợ và gỡ cấm (siết nợ) cho người chơi
