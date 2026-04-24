@@ -60,17 +60,45 @@ module.exports = {
         });
         await User.updateOne({ userId: userData.userId }, { $set: { lastWork: new Date() } });
 
-        // Tạo Embed kết quả làm việc cơ bản và hỏi tăng ca
+        // Định nghĩa Role IDs và phần thưởng
+        const ROLE_NAM_ID = '1495641257907716157';
+        const ROLE_BABYGIRL_ID = '1495641330796331038';
+        const ROLE_GIRL_ID = '1496390605373308938'; 
+        const userRoles = message.member.roles.cache;
+        const hasNamRole = userRoles.has(ROLE_NAM_ID);
+        const hasBabyGirlRole = userRoles.has(ROLE_BABYGIRL_ID);
+        const hasGirlRole = userRoles.has(ROLE_GIRL_ID);
+
+        // Tạo Embed kết quả làm việc
         const workEmbed = Embed.economy('Kết Quả Làm Việc')
-            .setDescription(
-                `${job.emoji} Bạn làm **${job.name}** và kiếm được **+${fmt(earned)} xu**!\n\n` +
-                `🌙 Trời đã tối, bạn có muốn **tăng ca** làm "Cave" không? (Còn 10s để chọn)`
-            )
+            .setDescription(`${job.emoji} Bạn làm **${job.name}** và kiếm được **+${fmt(earned)} xu**!`)
             .addFields({ name: '⏰ Làm việc lại sau', value: `**1 giờ**`, inline: true });
 
-        // Tạo 2 nút bấm
-        const row = new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId('work_cave').setLabel('Làm Cave').setEmoji('💃').setStyle(ButtonStyle.Danger),
+        // Tạo các nút bấm dựa trên role
+        const row = new ActionRowBuilder();
+        
+        // Luôn hiển thị nút Làm Cave mặc định
+        row.addComponents(
+            new ButtonBuilder().setCustomId('work_cave').setLabel('Làm Cave').setEmoji('💃').setStyle(ButtonStyle.Danger)
+        );
+
+        if (hasNamRole) {
+            row.addComponents(
+                new ButtonBuilder().setCustomId('work_traibao').setLabel('Trai Bao').setEmoji('🕺').setStyle(ButtonStyle.Danger)
+            );
+        }
+        if (hasBabyGirlRole || hasGirlRole) {
+            row.addComponents(
+                new ButtonBuilder().setCustomId('work_sugarbaby').setLabel('Sugar Baby').setEmoji('💅').setStyle(ButtonStyle.Primary)
+            );
+        }
+
+        // Luôn hỏi tăng ca và thêm nút "Không"
+        workEmbed.setDescription(
+            `${job.emoji} Bạn làm **${job.name}** và kiếm được **+${fmt(earned)} xu**!\n\n` +
+            `🌙 Trời đã tối, bạn có muốn **tăng ca** không? (Còn 10s để chọn)`
+        );
+        row.addComponents(
             new ButtonBuilder().setCustomId('work_no').setLabel('Không').setStyle(ButtonStyle.Secondary)
         );
 
@@ -83,33 +111,67 @@ module.exports = {
                 time: 10000 // 10 giây
             });
 
-            await interaction.deferUpdate();
+            // Kiểm tra role một lần nữa trong interaction để đảm bảo an toàn
+            const interactionRoles = interaction.member.roles.cache;
 
             if (interaction.customId === 'work_cave') {
-                const extraEarned = secureRandom(100, 200); // Lương làm cave: 100-200 xu
-                const finalUpdated = await processTransaction(userData.userId, extraEarned, 'WORK', 'Tăng ca làm cave', { guildId: message.guild?.id });
-                
+                const extraEarned = secureRandom(100, 200); // Lương làm cave cơ bản
+                const finalUpdated = await processTransaction(userData.userId, extraEarned, 'WORK', 'Tăng ca làm Cave', { guildId: message.guild?.id });
+
                 workEmbed.setDescription(
                     `${job.emoji} Bạn làm **${job.name}** và kiếm được **+${fmt(earned)} xu**!\n` +
                     `💃 Tối đến, bạn ra đường "tăng ca" và khách bo thêm được **+${fmt(extraEarned)} xu**!\n\n` +
                     balanceChange(userData.balance, finalUpdated.balance)
                 );
-                await interaction.editReply({ embeds: [workEmbed], components: [] });
-            } else {
+                return interaction.update({ embeds: [workEmbed], components: [] });
+            } else if (interaction.customId === 'work_traibao') {
+                    if (!interactionRoles.has(ROLE_NAM_ID)) {
+                        return interaction.reply({ content: '🚫 Bạn không có vai trò phù hợp để làm công việc này.', ephemeral: true });
+                    }
+                    const extraEarned = secureRandom(10000, 30000);
+                    const finalUpdated = await processTransaction(userData.userId, extraEarned, 'WORK', 'Tăng ca làm Trai Bao', { guildId: message.guild?.id });
+
+                    workEmbed.setDescription(
+                        `${job.emoji} Bạn làm **${job.name}** và kiếm được **+${fmt(earned)} xu**!\n` +
+                        `🕺 Tối đến, bạn ra đường làm "Trai Bao" và được đại gia bo đậm **+${fmt(extraEarned)} xu**!\n\n` +
+                        balanceChange(userData.balance, finalUpdated.balance)
+                    );
+                    return interaction.update({ embeds: [workEmbed], components: [] });
+                } else if (interaction.customId === 'work_sugarbaby') {
+                    if (interactionRoles.has(ROLE_BABYGIRL_ID)) {
+                        const extraEarned = secureRandom(50000, 200000);
+                        const finalUpdated = await processTransaction(userData.userId, extraEarned, 'WORK', 'Tăng ca làm Sugar Baby', { guildId: message.guild?.id });
+
+                        workEmbed.setDescription(
+                            `${job.emoji} Bạn làm **${job.name}** và kiếm được **+${fmt(earned)} xu**!\n` +
+                            `💅 Tối đến, bạn đi làm "Sugar Baby" và được chu cấp một khoản lớn **+${fmt(extraEarned)} xu**!\n\n` +
+                            balanceChange(userData.balance, finalUpdated.balance)
+                        );
+                        return interaction.update({ embeds: [workEmbed], components: [] });
+                    } else if (interactionRoles.has(ROLE_GIRL_ID)) {
+                        return interaction.reply({
+                            content: '💖 Ôi người con gái đáng iu, nàng hãy đăng ký nhận role **Baby Girl** để phù hợp với công việc này nhé!',
+                            ephemeral: true,
+                        });
+                    } else {
+                        return interaction.reply({ content: '🚫 Bạn không có vai trò phù hợp để làm công việc này.', ephemeral: true });
+                    }
+                } else { // work_no
+                    await interaction.deferUpdate();
+                    workEmbed.setDescription(
+                        `${job.emoji} Bạn làm **${job.name}** và kiếm được **+${fmt(earned)} xu**!\n\n` +
+                        `🛌 Bạn từ chối tăng ca và quyết định về nhà ngủ sớm.\n\n` +
+                        balanceChange(userData.balance, updated.balance)
+                    );
+                    await interaction.editReply({ embeds: [workEmbed], components: [] });
+                }
+            } catch (err) {
                 workEmbed.setDescription(
-                    `${job.emoji} Bạn làm **${job.name}** và kiếm được **+${fmt(earned)} xu**!\n\n` +
-                    `🛌 Bạn từ chối tăng ca và quyết định về nhà ngủ sớm.\n\n` +
+                    `${job.emoji} Bạn làm **${job.name}** và kiếm được **+${fmt(earned)} xu**!\n` +
+                    `⏰ Đã hết 10 giây, bạn mệt quá nên đi ngủ luôn.\n\n` +
                     balanceChange(userData.balance, updated.balance)
                 );
-                await interaction.editReply({ embeds: [workEmbed], components: [] });
-            }
-        } catch (err) {
-            workEmbed.setDescription(
-                `${job.emoji} Bạn làm **${job.name}** và kiếm được **+${fmt(earned)} xu**!\n\n` +
-                `⏰ Đã hết 10 giây, bạn mệt quá nên đi ngủ luôn.\n\n` +
-                balanceChange(userData.balance, updated.balance)
-            );
-            await replyMsg.edit({ embeds: [workEmbed], components: [] }).catch(() => {});
+                await replyMsg.edit({ embeds: [workEmbed], components: [] }).catch(() => {});
         }
     },
 };

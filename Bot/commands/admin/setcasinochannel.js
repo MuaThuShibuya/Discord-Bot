@@ -5,14 +5,13 @@ const { Embed } = require('../../utils/embed');
 
 module.exports = {
     name: 'setcasinochannel',
-    description: 'Admin: Giới hạn kênh casino. Cú pháp: !setcasinochannel <add|remove|list|clear> [#kênh]',
+    description: 'Admin: Giới hạn kênh casino. Cú pháp: !setcasinochannel <add|remove|list|clear> [#kênh|link_kênh]',
 
     async execute(message, args, client, userData) {
         if (!message.member.permissions.has('Administrator'))
             return message.reply({ embeds: [Embed.error('Không Có Quyền', 'Yêu cầu quyền **Administrator**.')] });
 
         const action  = args[0]?.toLowerCase();
-        const channel = message.mentions.channels.first();
         const guildId = message.guild.id;
 
         const guildData = await Guild.findOneAndUpdate(
@@ -42,12 +41,25 @@ module.exports = {
             });
         }
 
-        if (!channel)
+        // Từ đây trở đi, các lệnh đều cần channel
+        const input = args[1];
+        let channel = message.mentions.channels.first();
+
+        if (!channel && input) {
+            // Thử trích xuất ID từ link (ví dụ: https://discord.com/channels/GUILD_ID/CHANNEL_ID)
+            const linkMatch = input.match(/channels\/\d+\/(\d+)/);
+            const channelId = linkMatch ? linkMatch[1] : input; // Hoặc có thể là ID trần
+            const fetchedChannel = message.guild.channels.cache.get(channelId);
+            if (fetchedChannel) channel = fetchedChannel;
+        }
+
+        if (!['add', 'remove'].includes(action) || !channel)
             return message.reply({
                 embeds: [
                     Embed.info('Hướng Dẫn Setcasinochannel')
                         .setDescription(
                             '`!setcasinochannel add #kênh` — Thêm kênh\n' +
+                            '`!setcasinochannel add <link_kênh>` — Thêm kênh bằng link\n' +
                             '`!setcasinochannel remove #kênh` — Xóa kênh\n' +
                             '`!setcasinochannel list` — Xem danh sách\n' +
                             '`!setcasinochannel clear` — Bỏ toàn bộ giới hạn'
@@ -72,6 +84,5 @@ module.exports = {
             });
         }
 
-        return message.reply({ embeds: [Embed.error('Hành Động Không Hợp Lệ', 'Dùng: `add`, `remove`, `list`, `clear`.')] });
     },
 };
